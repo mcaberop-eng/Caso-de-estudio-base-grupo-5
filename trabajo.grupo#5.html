@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejercicios con Vectores Numericos-Grupo#5</title>
+   <style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: hsl(230, 60%, 86%);
+    }
+
+    table {
+        border-collapse: collapse;
+        margin-top: 10px;
+        width: 100%;
+    }
+
+    table td, table th {
+        border: 1px solid hsl(198, 62%, 80%);
+        padding: 8px;
+        text-align: center;
+    }
+
+    thead tr {
+        background-color: hwb(214 68% 7%);
+        color: hsl(12, 80%, 36%);
+    }
+
+    tbody tr:first-child td {
+        background-color: lch(95.67% 16.59 198.39); /* Índices del vector */
+        font-weight: bold;
+    }
+
+    tbody tr:nth-child(2) td {
+        background-color: #c8f7c5; /* Valores del vector (verde claro) */
+    }
+
+    tfoot td {
+        background-color: hwb(208 67% 5%);
+        text-align: center;
+    }
+
+    button {
+        padding: 6px 12px;
+        background-color: hwb(114 64% 7%);
+        color: #311414;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: lab(89.61% -19.56 19.19);
+    }
+
+    textarea {
+        font-family: monospace;
+        width: 100%;
+        resize: vertical;
+        background-color: #f4f4f4;
+        border: 1px solid #ccc;
+        padding: 8px;
+        box-sizing: border-box;
+    }
+
+    h4 {
+        color: hwb(240 9% 91%);
+    }
+</style>
+</head>
+
+<body>
+    <h4>Ejercicio con Vectores-grupo#5</h4>
+    <div>
+        <table>
+            <tbody>
+                <tr>
+                    <td>Dimension del arreglo:</td>
+                    <td>
+                        <select id="select-dimension-arreglo">
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="15">15</option>
+                            <option value="20">20</option>
+                            <option value="25">25</option>
+                            <option value="30">30</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Ingrese valor a buscar:</td>
+                    <td><input type="text" name="" id="id-valor-busqueda" maxlength="4" size="5"></td>
+                </tr>
+            </tbody>
+        </table>
+
+
+    </div>
+    <br>
+    <table id="id-table-vector-numerico" border="1" cellspacing="1" cellpadding="1">
+        <thead>
+            <tr>
+                <td colspan="10">Vector numerico de N elementos</td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>0</td>
+                <td>1</td>
+                <td>2</td>
+                <td>3</td>
+                <td>4</td>
+                <td>5</td>
+                <td>6</td>
+                <td>7</td>
+                <td>8</td>
+                <td>9</td>
+            </tr>
+            <tr>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5"><button id="btn-cargar-vector">Cargar Vector</button></td>
+                <td colspan="5"><button id="btn-vaciar-vector">Vaciar Vector</button></td>
+            </tr>
+            <tr>
+                <td colspan="5"><button id="btn-eliminar-duplicados">Eliminar duplicados</button></td>
+                <td colspan="5"><button id="btn-invertir-vector">Invertir vector</button></td>
+            </tr>
+        </tfoot>
+    </table>
+    <hr>
+    <table>
+        <thead>
+            <tr>
+                <td colspan="2">Calculos con vectores </td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Resultado:</td>
+                <td colspan="2"><textarea id="id-txt-respuesta" rows="4" cols="70" readonly></textarea></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        // Declaracion del vector
+        let vector = []
+        const NUM_MAXIMO_RANDOM = 50
+
+        // Referencia a elementos del DOM/HTML -> controles.
+        const tableTbody = document.querySelector('#id-table-vector-numerico > tbody')
+        const btnCargarVector = document.getElementById("btn-cargar-vector")
+        const btnVaciarVector = document.getElementById("btn-vaciar-vector")
+        // Opcional en caso de calculos con vectores y mostrar resultados.
+        const txtRespuesta = document.getElementById("id-txt-respuesta")
+        const selectDimension = document.getElementById("select-dimension-arreglo")
+
+        let TOPE = parseInt(selectDimension.options[selectDimension.selectedIndex].value)
+
+        selectDimension.addEventListener('change', (event) => {
+            TOPE = parseInt(event.target.value)
+        })
+
+        btnCargarVector.addEventListener('click', (event) => {
+            event.preventDefault()
+            fnCargarVector()
+            fnPresentarVector()
+        })
+
+        function fnCargarVector() {
+            for (let x = 0; x < TOPE; x++) {
+                const numero = Math.ceil(Math.random() * NUM_MAXIMO_RANDOM);
+                vector[x] = numero
+            }
+        }
+
+        function fnPresentarVector() {
+            let contador = 0
+            let str = ''
+            while (contador < 2) {
+                str = str + `<tr>`
+                for (let x = 0; x < TOPE; x++) {
+                    if (contador === 0) {
+                        str = str + `<td>${x}</td>`
+                    } else {
+                        str = str + `<td bgcolor="#00FF00">${vector[x] || '-'}</td>`
+                    }
+                }
+                str = str + `</tr>`
+                contador++
+            }
+            tableTbody.innerHTML = str
+        }
+
+        btnVaciarVector.addEventListener('click', (event) => {
+            event.preventDefault()
+            fnVaciarVector()
+            fnPresentarVector()
+        })
+
+        function fnVaciarVector() {
+            vector = []
+        }
+        //funcion de eliminar duplicados
+        
+const btnEliminarDuplicados = document.getElementById("btn-eliminar-duplicados")
+const btnInvertirVector = document.getElementById("btn-invertir-vector")
+
+btnEliminarDuplicados.addEventListener('click', (event) => {
+    event.preventDefault()
+
+    const originalVector = [...vector]
+    const vistos = new Set()
+    const duplicados = new Set()
+    const nuevoVector = []
+
+    for (const num of vector) {
+        if (vistos.has(num)) {
+            duplicados.add(num)
+        } else {
+            vistos.add(num)
+            nuevoVector.push(num)
+        }
+    }
+
+    vector = nuevoVector
+    fnPresentarVector()
+
+    if (duplicados.size > 0) {
+        txtRespuesta.value =
+            `Vector original: [${originalVector.join(', ')}]\n` +
+            `Vector sin duplicados: [${vector.join(', ')}]\n` +
+            `Duplicados eliminados: [${Array.from(duplicados).join(', ')}]`
+    } else {
+        txtRespuesta.value =
+            `Vector original: [${originalVector.join(', ')}]\n` +
+            `No se encontraron duplicados.`
+    }
+})
+
+// Invertir vector
+btnInvertirVector.addEventListener('click', (event) => {
+    event.preventDefault()
+
+    const originalVector = [...vector]
+    vector.reverse()
+    fnPresentarVector()
+
+    txtRespuesta.value =
+        `Vector antes de invertir: [${originalVector.join(', ')}]\n` +
+        `Vector después de invertir: [${vector.join(', ')}]`
+})
+</script>
+</body>
+
+</html>
