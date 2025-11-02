@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parqueadero-Fe de Dios</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #eef3f8;
+    margin: 0;
+    padding: 0;
+  }
+  .login-container, .app-container {
+    max-width: 850px;
+    margin: 60px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  }
+  h2, h3 {
+    text-align: center;
+    color: #2a5298;
+  }
+  input, button {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+  }
+  button {
+    background-color: #2a5298;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #1d3d7a;
+  }
+  .hidden {
+    display: none;
+  }
+  .resultados {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 15px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+  }
+  th {
+    background-color: #2a5298;
+    color: white;
+  }
+  .total-dia {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+  #mensaje {
+    text-align: center;
+    font-weight: bold;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 8px;
+  }
+  .ok {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  .error {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+</style>
+</head>
+<body>
+
+<!-- PANTALLA DE LOGIN -->
+<div class="login-container" id="login">
+  <h2>Acceso al Sistema de guardias del parqueadero</h2>
+  <input type="email" id="correo" placeholder="Correo institucional (ej: usuario@unemi.edu.ec)" required>
+  <input type="password" id="clave" placeholder="Contraseña" required>
+  <button onclick="iniciarSesion()">Ingresar</button>
+  <p id="mensajeError" style="color:red; text-align:center;"></p>
+</div>
+
+<!-- PANTALLA PRINCIPAL -->
+<div class="app-container hidden" id="app">
+  <h2>Control de Parqueadero</h2>
+
+  <div id="mensaje"></div>
+
+  <h3>Registro de Entrada</h3>
+  <label>Placa del auto:</label>
+  <input type="text" id="placa" placeholder="Ej: ABC123">
+  
+  <label>Hora de entrada:</label>
+  <input type="number" id="horaEntrada" placeholder="Ej: 9">
+
+  <button onclick="registrarEntrada()">Registrar Entrada</button>
+  
+  <hr>
+
+  <h3>Registro de Salida</h3>
+  <label>Placa (salida):</label>
+  <input type="text" id="placaSalida" placeholder="Ej: ABC123">
+  
+  <label>Hora de salida:</label>
+  <input type="number" id="horaSalida" placeholder="Ej: 12">
+
+  <button onclick="registrarSalida()">Registrar Salida</button>
+
+  <div class="resultados">
+    <h3>Autos actualmente estacionados</h3>
+    <table id="tablaAutos">
+      <tr><th>Placa</th><th>Hora Entrada</th></tr>
+    </table>
+  </div>
+
+  <div class="resultados">
+    <h3>Historial de Salidas</h3>
+    <table id="tablaHistorial">
+      <tr>
+        <th>Placa</th>
+        <th>Hora Entrada</th>
+        <th>Hora Salida</th>
+        <th>Horas Estadia</th>
+        <th>Valor Cobrado ($)</th>
+      </tr>
+    </table>
+
+    <button class="total-dia" onclick="mostrarTotal()">Mostrar Total del Día</button>
+    <p><strong>Total Recaudado Hoy:</strong> $<span id="totalCobrado">0.00</span></p>
+  </div>
+</div>
+
+<script>
+  // LOGIN
+  function iniciarSesion() {
+    const correo = document.getElementById("correo").value.trim();
+    const clave = document.getElementById("clave").value.trim();
+    const mensaje = document.getElementById("mensajeError");
+
+    if (correo.endsWith("@unemi.edu.ec")) {
+      document.getElementById("login").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+    } else {
+      mensaje.textContent = "Solo se permiten correos institucionales @unemi.edu.ec";
+    }
+  }
+
+  // SISTEMA DE PARQUEADERO
+  let placas = [];
+  let horasEntrada = [];
+  let historial = [];
+  let totalCobrado = 0;
+
+  function mostrarMensaje(texto, tipo) {
+    const msg = document.getElementById("mensaje");
+    msg.textContent = texto;
+    msg.className = tipo === "ok" ? "ok" : "error";
+    setTimeout(() => msg.textContent = "", 4000);
+  }
+
+  function actualizarTabla() {
+    const tabla = document.getElementById("tablaAutos");
+    tabla.innerHTML = "<tr><th>Placa</th><th>Hora Entrada</th></tr>";
+    for (let i = 0; i < placas.length; i++) {
+      let fila = `<tr><td>${placas[i]}</td><td>${horasEntrada[i]}</td></tr>`;
+      tabla.innerHTML += fila;
+    }
+  }
+
+  function actualizarHistorial() {
+    const tablaHist = document.getElementById("tablaHistorial");
+    tablaHist.innerHTML = `
+      <tr>
+        <th>Placa</th>
+        <th>Hora Entrada</th>
+        <th>Hora Salida</th>
+        <th>Horas Estadia</th>
+        <th>Valor Cobrado ($)</th>
+      </tr>`;
+    for (let i = 0; i < historial.length; i++) {
+      let r = historial[i];
+      tablaHist.innerHTML += `
+        <tr>
+          <td>${r.placa}</td>
+          <td>${r.horaEntrada}</td>
+          <td>${r.horaSalida}</td>
+          <td>${r.horasEstadia}</td>
+          <td>${r.valor.toFixed(2)}</td>
+        </tr>`;
+    }
+  }
+
+  function registrarEntrada() {
+    let placa = document.getElementById("placa").value.toUpperCase().trim();
+    let hora = parseFloat(document.getElementById("horaEntrada").value);
+
+    if (!placa || isNaN(hora)) {
+      mostrarMensaje("Por favor ingrese la placa y la hora de entrada.", "error");
+      return;
+    }
+    if (placas.includes(placa)) {
+      mostrarMensaje("Este vehículo ya está registrado en el parqueadero.", "error");
+      return;
+    }
+
+    placas.push(placa);
+    horasEntrada.push(hora);
+    actualizarTabla();
+
+    mostrarMensaje(`Vehículo ${placa} ingresó a las ${hora}:00 horas.`, "ok");
+
+    document.getElementById("placa").value = "";
+    document.getElementById("horaEntrada").value = "";
+  }
+
+  function registrarSalida() {
+    let placaSalida = document.getElementById("placaSalida").value.toUpperCase().trim();
+    let horaSalida = parseFloat(document.getElementById("horaSalida").value);
+
+    if (!placaSalida || isNaN(horaSalida)) {
+      mostrarMensaje("Ingrese la placa y la hora de salida.", "error");
+      return;
+    }
+
+    let index = placas.indexOf(placaSalida);
+    if (index === -1) {
+      mostrarMensaje("No se encontró este vehículo en el parqueadero.", "error");
+      return;
+    }
+
+    let horaEntrada = horasEntrada[index];
+    let horasEstadia = horaSalida - horaEntrada;
+    if (horasEstadia <= 0) {
+      mostrarMensaje("La hora de salida debe ser mayor a la de entrada.", "error");
+      return;
+    }
+
+    let tarifa = 0.75;
+    let cobro = horasEstadia * tarifa;
+    totalCobrado += cobro;
+
+    historial.push({
+      placa: placaSalida,
+      horaEntrada: horaEntrada,
+      horaSalida: horaSalida,
+      horasEstadia: horasEstadia,
+      valor: cobro
+    });
+
+    mostrarMensaje(`Vehículo ${placaSalida} salió. Total: $${cobro.toFixed(2)}`, "ok");
+
+    placas.splice(index, 1);
+    horasEntrada.splice(index, 1);
+
+    actualizarTabla();
+    actualizarHistorial();
+
+    document.getElementById("placaSalida").value = "";
+    document.getElementById("horaSalida").value = "";
+  }
+
+  function mostrarTotal() {
+    document.getElementById("totalCobrado").textContent = totalCobrado.toFixed(2);
+    mostrarMensaje(`Total recaudado hoy: $${totalCobrado.toFixed(2)}`, "ok");
+  }
+</script>
+</body>
+</html>
