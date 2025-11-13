@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Facturación con Vectores</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+      padding: 40px;
+      text-align: center;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    .factura {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border-bottom: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background: #2c3e50;
+      color: white;
+    }
+    .btn-remove {
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 8px;
+      cursor: pointer;
+    }
+    .btn-remove:hover {
+      background: darkred;
+    }
+    .btn-add {
+      background: #2c3e50;
+      color: white;
+      padding: 5px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-add:hover {
+      background: #1a252f;
+    }
+    .totales {
+      text-align: right;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    input[readonly] {
+      background: #f1f1f1;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>💼 Sistema de Facturación con Vectores</h1>
+
+  <div class="factura">
+    <div>
+      <label>Producto: </label>
+      <select id="id-select-producto">
+        <option value="">--Seleccione--</option>
+      </select>
+      <label>Cantidad: </label>
+      <input type="number" id="id-txt-cantidad" min="1" value="1" style="width:60px;">
+      <label>Precio Unitario: </label>
+      <input type="text" id="id-txt-precio" value="$0.00" readonly style="width:80px;">
+      <label>Total: </label>
+      <input type="text" id="id-txt-total" value="$0.00" readonly style="width:80px;">
+      <button class="btn-add" id="id-btn-agregar" type="button">Agregar</button>
+    </div>
+
+    <table id="id-table-detalle">
+      <thead>
+        <tr>
+          <th>Cód.</th>
+          <th>Descripción</th>
+          <th>Precio</th>
+          <th>Cant.</th>
+          <th>Total</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="6" style="text-align:center;">No hay productos</td></tr>
+      </tbody>
+    </table>
+
+    <div class="totales">
+      <p id="id-txt-subtotal">Subtotal: $0.00</p>
+      <p id="id-txt-iva">IVA (15%): $0.00</p>
+      <p id="id-txt-descuento">Descuento: $0.00</p>
+      <p id="id-txt-total-pagar">TOTAL: $0.00</p>
+    </div>
+  </div>
+
+  <script>
+  window.onload = function() {
+    // === Lista de productos ===
+    const productos = [
+      ["0001", 3500, "Sistema Web Personalizado"],
+      ["0002", 500, "Computador Core I7"],
+      ["0003", 200, "Monitor LG 20 pulgadas"],
+      ["0004", 300, "Teléfono Celular Samsung"],
+      ["0005", 200, "Cámara profesional Web"],
+      ["0006", 150, "Servicio de Mantenimiento Anual"],
+      ["0007", 100, "Servicio de Hosting Web (1 año)"],
+      ["0008", 250, "Licencia Software Antivirus (1 año)"],
+      ["0009", 400, "Impresora Multifuncional HP"],
+      ["0010", 120, "Router Inalámbrico TP-Link"],
+      ["0011", 180, "Teclado Mecánico RGB"],
+      ["0012", 90, "Mouse Óptico USB"],
+      ["0013", 75, "Audífonos con Micrófono"],
+      ["0014", 60, "Disco Duro Externo 1TB"],
+      ["0015", 45, "Memoria USB 64GB"],
+      ["0016", 250, "Tablet Android 10 pulgadas"],
+      ["0017", 300, "Smartwatch Deportivo"],
+      ["0018", 400, "Proyector Multimedia HD"],
+      ["0019", 150, "Cámara de Seguridad IP"],
+      ["0020", 80, "Soporte para Laptop Ajustable"]
+    ];
+
+    // === Vectores de la factura ===
+    let codigos = [], descripciones = [], precios = [], cantidades = [], totales = [];
+
+    // === Referencias a los elementos HTML ===
+    const selectProducto = document.getElementById('id-select-producto');
+    const txtCantidad = document.getElementById('id-txt-cantidad');
+    const txtPrecio = document.getElementById('id-txt-precio');
+    const txtTotal = document.getElementById('id-txt-total');
+    const btnAgregar = document.getElementById('id-btn-agregar');
+    const tabla = document.querySelector('#id-table-detalle tbody');
+    const txtSubtotal = document.getElementById('id-txt-subtotal');
+    const txtIva = document.getElementById('id-txt-iva');
+    const txtDescuento = document.getElementById('id-txt-descuento');
+    const txtTotalPagar = document.getElementById('id-txt-total-pagar');
+
+    // === Cargar productos en la lista ===
+    productos.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p[1];
+      opt.dataset.codigo = p[0];
+      opt.textContent = p[2];
+      selectProducto.appendChild(opt);
+    });
+
+    // === Calcular total dinámico al seleccionar producto o cambiar cantidad ===
+    function actualizarTotalTemporal() {
+      const precio = parseFloat(selectProducto.value);
+      const cantidad = parseFloat(txtCantidad.value);
+      if (!isNaN(precio) && !isNaN(cantidad) && cantidad > 0) {
+        txtPrecio.value = `$${precio.toFixed(2)}`;
+        txtTotal.value = `$${(precio * cantidad).toFixed(2)}`;
+      } else {
+        txtPrecio.value = "$0.00";
+        txtTotal.value = "$0.00";
+      }
+    }
+
+    selectProducto.addEventListener('change', actualizarTotalTemporal);
+    txtCantidad.addEventListener('input', actualizarTotalTemporal);
+
+    // === Agregar producto ===
+    btnAgregar.addEventListener('click', e => {
+      e.preventDefault();
+      const opcion = selectProducto.options[selectProducto.selectedIndex];
+      const codigo = opcion.dataset.codigo;
+      const descripcion = opcion.textContent;
+      const precio = parseFloat(opcion.value);
+      const cantidad = parseInt(txtCantidad.value);
+
+      if (!codigo) return alert("Seleccione un producto.");
+      if (isNaN(cantidad) || cantidad < 1) return alert("Ingrese una cantidad válida.");
+
+      const i = codigos.indexOf(codigo);
+      if (i >= 0) {
+        cantidades[i] += cantidad;
+        totales[i] = precios[i] * cantidades[i];
+      } else {
+        codigos.push(codigo);
+        descripciones.push(descripcion);
+        precios.push(precio);
+        cantidades.push(cantidad);
+        totales.push(precio * cantidad);
+      }
+
+      mostrarTabla();
+      calcularTotales();
+      limpiarFormulario();
+    });
+
+    // === Mostrar tabla ===
+    function mostrarTabla() {
+      tabla.innerHTML = "";
+      if (codigos.length === 0) {
+        tabla.innerHTML = `<tr><td colspan="6" style="text-align:center;">No hay productos</td></tr>`;
+        return;
+      }
+      for (let i = 0; i < codigos.length; i++) {
+        tabla.innerHTML += `
+          <tr>
+            <td>${codigos[i]}</td>
+            <td>${descripciones[i]}</td>
+            <td>$${precios[i].toFixed(2)}</td>
+            <td>${cantidades[i]}</td>
+            <td>$${totales[i].toFixed(2)}</td>
+            <td><button class="btn-remove" data-i="${i}">✕</button></td>
+          </tr>`;
+      }
+    }
+
+    // === Eliminar producto ===
+    tabla.addEventListener('click', e => {
+      if (e.target.classList.contains('btn-remove')) {
+        const i = e.target.dataset.i;
+        codigos.splice(i, 1);
+        descripciones.splice(i, 1);
+        precios.splice(i, 1);
+        cantidades.splice(i, 1);
+        totales.splice(i, 1);
+        mostrarTabla();
+        calcularTotales();
+      }
+    });
+
+    // === Calcular totales ===
+    function calcularTotales() {
+      const subtotal = totales.reduce((a, b) => a + b, 0);
+      const iva = subtotal * 0.15;
+      const descuento = subtotal > 0 ? 150 : 0;
+      const total = subtotal + iva - descuento;
+      txtSubtotal.textContent = `Subtotal: $${subtotal.toFixed(2)}`;
+      txtIva.textContent = `IVA (15%): $${iva.toFixed(2)}`;
+      txtDescuento.textContent = `Descuento: $${descuento.toFixed(2)}`;
+      txtTotalPagar.textContent = `Total a Pagar: $${total.toFixed(2)}`;
+    }
+
+    // === Limpiar formulario ===
+    function limpiarFormulario() {
+      selectProducto.value = "";
+      txtCantidad.value = 1;
+      txtPrecio.value = "$0.00";
+      txtTotal.value = "$0.00";
+      selectProducto.focus();
+    }
+  };
+  </script>
+</body>
+</html>
